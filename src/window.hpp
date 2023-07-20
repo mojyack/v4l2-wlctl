@@ -225,7 +225,7 @@ class Window {
         case Row::template index_of<Label<LabelType::Normal>>:
             break;
         case Row::template index_of<Label<LabelType::Quit>>:
-            std::quick_exit(0);
+            quit();
             break;
         }
     }
