@@ -19,17 +19,17 @@ enum class ControlType {
 
 template <class T>
 concept Control = requires(T& ctrl) {
-                      { ctrl.inactive() } -> std::same_as<bool>;
-                      { ctrl.get_type() } -> std::same_as<ControlType>;
-                      { ctrl.get_label() } -> std::same_as<std::string_view>;
-                      { ctrl.get_max() } -> std::same_as<int>;
-                      { ctrl.get_min() } -> std::same_as<int>;
-                      { ctrl.get_step() } -> std::same_as<int>;
-                      { ctrl.get_current() } -> std::same_as<int>;
-                      { ctrl.get_menu_size() } -> std::same_as<size_t>;
-                      { ctrl.get_menu_label(0) } -> std::same_as<std::string_view>;
-                      { ctrl.get_menu_value(0) } -> std::same_as<int>;
-                  };
+    { ctrl.inactive() } -> std::same_as<bool>;
+    { ctrl.get_type() } -> std::same_as<ControlType>;
+    { ctrl.get_label() } -> std::same_as<std::string_view>;
+    { ctrl.get_max() } -> std::same_as<int>;
+    { ctrl.get_min() } -> std::same_as<int>;
+    { ctrl.get_step() } -> std::same_as<int>;
+    { ctrl.get_current() } -> std::same_as<int>;
+    { ctrl.get_menu_size() } -> std::same_as<size_t>;
+    { ctrl.get_menu_label(0) } -> std::same_as<std::string_view>;
+    { ctrl.get_menu_value(0) } -> std::same_as<int>;
+};
 
 template <Control T>
 using ApplyControl = bool(T&, int value); // returns are controls invalidated
@@ -55,6 +55,7 @@ class Window {
     gawl::TextRender               font;
     std::vector<Row>&              rows;
     std::function<ApplyControl<T>> apply_control;
+    std::function<void()>          quit;
     T*                             focus_control = nullptr;
     gawl::Point                    pointer       = {-1, -1};
 
@@ -229,10 +230,11 @@ class Window {
         }
     }
 
-    Window(gawl::Window<Window>& window, std::vector<Row>& rows, std::function<ApplyControl<T>> apply_control)
+    Window(gawl::Window<Window>& window, std::vector<Row>& rows, std::function<ApplyControl<T>> apply_control, std::function<void()> quit)
         : window(window),
           font({gawl::find_fontpath_from_name("Noto Sans CJK JP").unwrap().data()}, 32),
           rows(rows),
-          apply_control(apply_control) {}
+          apply_control(apply_control),
+          quit(quit) {}
 };
 } // namespace vcw

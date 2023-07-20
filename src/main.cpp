@@ -88,7 +88,7 @@ auto main(const int argc, const char* argv[]) -> int {
     });
 
     auto app = gawl::Application();
-    app.open_window<Window>({.title = "v4l2-wlctl", .manual_refresh = true}, rows, apply_control);
+    app.open_window<Window>({.title = "v4l2-wlctl", .manual_refresh = true}, rows, apply_control, []() { std::quick_exit(0); });
     app.run();
     return 0;
 }
