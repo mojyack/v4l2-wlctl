@@ -1,4 +1,5 @@
 #pragma once
+#include <optional>
 #include <vector>
 
 namespace v4l2 {
@@ -29,8 +30,6 @@ struct Control {
 };
 
 auto query_controls(int fd) -> std::vector<Control>;
-
-auto get_control(int fd, uint32_t id) -> int32_t;
-
-auto set_control(int fd, uint32_t id, int32_t value) -> void;
+auto get_control(int fd, uint32_t id) -> std::optional<int32_t>;
+auto set_control(int fd, uint32_t id, int32_t value) -> bool;
 } // namespace v4l2

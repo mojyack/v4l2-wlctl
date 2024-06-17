@@ -1,14 +1,25 @@
-project('v4l2-wlctl', 'cpp', version : '1.0.0', default_options : ['warning_level=3', 'werror=false', 'cpp_std=c++20'])
+project('v4l2-wlctl', ['c', 'cpp'], version : '1.0.0', default_options : ['warning_level=3', 'werror=false', 'cpp_std=c++20'])
 
-deps = [
-  dependency('gawl', version : ['>=2.6', '<2.7']),
-  dependency('gawl-fc'),
-]
+subdir('src/gawl')
 
-executable('v4l2-wlctl', files('src/main.cpp', 'src/v4l2.cpp'),
-            dependencies : deps,
-            install : true)
+wlctl_file = files(
+  'src/main.cpp',
+  'src/v4l2.cpp',
+  'src/window.cpp',
+) + gawl_core_files + gawl_textrender_files + gawl_fc_files + gawl_no_touch_callbacks_file
 
-executable('v4l2-wlctl-oneshot', files('src/oneshot.cpp', 'src/v4l2.cpp'),
-            dependencies : [],
-            install : true)
+wlctl_deps = gawl_core_deps + gawl_textrender_deps + gawl_fc_deps
+
+oneshot_files = files(
+  'src/oneshot.cpp',
+  'src/v4l2.cpp',
+)
+
+executable('v4l2-wlctl', wlctl_file,
+            dependencies : wlctl_deps,
+            install : true,
+)
+
+executable('v4l2-wlctl-oneshot', oneshot_files,
+            install : true,
+)

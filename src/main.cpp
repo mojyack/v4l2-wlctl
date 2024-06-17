@@ -1,16 +1,19 @@
 #include <fcntl.h>
 
+#include "gawl/wayland/application.hpp"
+#include "macros/assert.hpp"
+#include "util/assert.hpp"
 #include "v4l2.hpp"
 #include "window.hpp"
 
-struct Control {
+struct Control : vcw::Control {
     v4l2::Control ctrl;
 
-    auto inactive() const -> bool {
-        return ctrl.ro || ctrl.inactive;
+    auto is_active() -> bool override {
+        return !ctrl.ro && !ctrl.inactive;
     }
 
-    auto get_type() const -> vcw::ControlType {
+    auto get_type() -> vcw::ControlType override {
         switch(ctrl.type) {
         case v4l2::ControlType::Int:
             return vcw::ControlType::Int;
@@ -21,74 +24,79 @@ struct Control {
         }
     }
 
-    auto get_label() const -> std::string_view {
+    auto get_label() -> std::string_view override {
         return ctrl.name;
     }
 
-    auto get_max() const -> int {
-        return ctrl.max;
+    auto get_range() -> vcw::ValueRange override {
+        return {ctrl.min, ctrl.max, ctrl.step};
     }
 
-    auto get_min() const -> int {
-        return ctrl.min;
-    }
-
-    auto get_step() const -> int {
-        return ctrl.step;
-    }
-
-    auto get_current() const -> int {
+    auto get_current() -> int override {
         return ctrl.current;
     }
 
-    auto get_menu_size() const -> size_t {
+    auto get_menu_size() -> size_t override {
         return ctrl.menus.size();
     }
 
-    auto get_menu_label(const int i) const -> std::string_view {
-        return ctrl.menus[i].name;
+    auto get_menu_label(const size_t index) -> std::string_view override {
+        return ctrl.menus[index].name;
     }
 
-    auto get_menu_value(const int i) const -> int {
-        return int(ctrl.menus[i].index);
+    auto get_menu_value(const size_t index) -> int override {
+        return int(ctrl.menus[index].index);
     }
 };
 
-using Window = vcw::Window<Control>;
-
-auto controls_to_rows(std::vector<v4l2::Control> controls) -> std::vector<Window::Row> {
-    auto ret = std::vector<Window::Row>();
+auto controls_to_rows(std::vector<v4l2::Control> controls) -> std::vector<vcw::Row> {
+    auto ret = std::vector<vcw::Row>();
     for(auto& ctrl : controls) {
         if(ctrl.type == v4l2::ControlType::Menu) {
-            ret.emplace_back(vcw::Tag<vcw::Label<vcw::LabelType::Normal>>(), vcw::Label<vcw::LabelType::Normal>{0, ctrl.name});
+            ret.emplace_back(vcw::Tag<vcw::Label>(), vcw::Label{ctrl.name});
         }
-        ret.emplace_back(vcw::Tag<Control>(), Control{std::move(ctrl)});
+        const auto ptr = new Control();
+        ptr->ctrl      = std::move(ctrl);
+        ret.emplace_back(vcw::Tag<vcw::ControlPtr>(), ptr);
     }
-    ret.emplace_back(vcw::Tag<vcw::Label<vcw::LabelType::Quit>>(), vcw::Label<vcw::LabelType::Quit>{0, "Quit"});
+    ret.emplace_back(vcw::Tag<vcw::QuitButton>(), vcw::QuitButton{});
 
     return ret;
 }
 
-auto main(const int argc, const char* argv[]) -> int {
-    if(argc < 2) {
-        return 1;
-    }
+struct UserCallbacks : public vcw::UserCallbacks {
+    int                    fd;
+    std::vector<vcw::Row>* rows;
 
-    auto fd            = open(argv[1], O_RDWR);
-    auto rows          = controls_to_rows(v4l2::query_controls(fd));
-    auto apply_control = std::function([fd, &rows](Control& ctrl_, const int value) -> bool {
-        auto& ctrl   = ctrl_.ctrl;
+    auto set_control_value(vcw::Control& control, int value) -> void override {
+        auto& ctrl   = std::bit_cast<Control*>(&control)->ctrl;
         ctrl.current = value;
         v4l2::set_control(fd, ctrl.id, ctrl.current);
         if(ctrl.type == v4l2::ControlType::Bool || ctrl.type == v4l2::ControlType::Menu) {
-            rows = controls_to_rows(v4l2::query_controls(fd)); // reload for newly activated/inactivated controls;
-            return true;
+            // reload for newly activated/inactivated controls;
+            *rows = controls_to_rows(v4l2::query_controls(fd));
         }
-        return false;
-    });
+    }
 
-    auto app = gawl::Application();
-    app.open_window<Window>({.title = "v4l2-wlctl", .manual_refresh = true}, rows, apply_control, []() { std::quick_exit(0); });
+    auto quit() -> void override {
+        std::quick_exit(0);
+    }
+};
+
+auto main(const int argc, const char* argv[]) -> int {
+    assert_v(argc == 2, 1);
+
+    const auto fd   = open(argv[1], O_RDWR);
+    auto       rows = controls_to_rows(v4l2::query_controls(fd));
+
+    auto user_callbacks  = std::shared_ptr<UserCallbacks>(new UserCallbacks());
+    user_callbacks->fd   = fd;
+    user_callbacks->rows = &rows;
+
+    auto window_callbacks = std::shared_ptr<vcw::Callbacks>(new vcw::Callbacks(rows, user_callbacks));
+
+    auto app = gawl::WaylandApplication();
+    app.open_window({.title = "v4l2-wlctl", .manual_refresh = true}, window_callbacks);
     app.run();
     return 0;
 }

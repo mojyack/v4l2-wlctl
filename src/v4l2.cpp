@@ -4,13 +4,14 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 
-#include "assert.hpp"
+#include "macros/unwrap.hpp"
+#include "util/assert.hpp"
 #include "v4l2.hpp"
 
 namespace v4l2 {
 template <class... Args>
 auto xioctl(const int fd, const int request, Args&&... args) -> int {
-    int r;
+    auto r = int();
     do {
         r = ioctl(fd, request, std::forward<Args>(args)...);
     } while(r == -1 && errno == EINTR);
@@ -85,6 +86,8 @@ auto query_class_controls(const int fd, const uint32_t control_class, std::vecto
                 continue;
             }
 
+            unwrap_on(current, get_control(fd, queryctrl.id));
+
             auto control = Control{
                 .id       = queryctrl.id,
                 .type     = type,
@@ -92,7 +95,7 @@ auto query_class_controls(const int fd, const uint32_t control_class, std::vecto
                 .max      = queryctrl.maximum,
                 .min      = queryctrl.minimum,
                 .step     = queryctrl.step,
-                .current  = get_control(fd, queryctrl.id),
+                .current  = current,
                 .menus    = {},
                 .ro       = bool(queryctrl.flags & V4L2_CTRL_FLAG_READ_ONLY),
                 .inactive = bool(queryctrl.flags & V4L2_CTRL_FLAG_INACTIVE),
@@ -130,20 +133,20 @@ auto query_controls(const int fd) -> std::vector<Control> {
     return ret;
 }
 
-auto get_control(const int fd, const uint32_t id) -> int32_t {
+auto get_control(const int fd, const uint32_t id) -> std::optional<int32_t> {
     auto control = v4l2_control();
     control.id   = id;
 
-    DYN_ASSERT(xioctl(fd, VIDIOC_G_CTRL, &control) == 0);
+    assert_o(xioctl(fd, VIDIOC_G_CTRL, &control) == 0);
 
     return control.value;
 }
 
-auto set_control(const int fd, const uint32_t id, const int32_t value) -> void {
+auto set_control(const int fd, const uint32_t id, const int32_t value) -> bool {
     auto control  = v4l2_control();
     control.id    = id;
     control.value = value;
 
-    DYN_ASSERT(xioctl(fd, VIDIOC_S_CTRL, &control) == 0);
+    return xioctl(fd, VIDIOC_S_CTRL, &control) == 0;
 }
 } // namespace v4l2
