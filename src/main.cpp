@@ -86,8 +86,9 @@ struct UserCallbacks : public vcw::UserCallbacks {
 auto main(const int argc, const char* argv[]) -> int {
     assert_v(argc == 2, 1);
 
-    const auto fd   = open(argv[1], O_RDWR);
-    auto       rows = controls_to_rows(v4l2::query_controls(fd));
+    const auto fd = open(argv[1], O_RDWR);
+    assert_v(fd >= 0, 1);
+    auto rows = controls_to_rows(v4l2::query_controls(fd));
 
     auto user_callbacks  = std::shared_ptr<UserCallbacks>(new UserCallbacks());
     user_callbacks->fd   = fd;
