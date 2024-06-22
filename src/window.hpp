@@ -49,7 +49,11 @@ using Row = Variant<ControlPtr, Label, QuitButton>;
 
 struct UserCallbacks {
     virtual auto set_control_value(Control& control, int value) -> void = 0;
-    virtual auto quit() -> void                                         = 0;
+
+    // return true to quit application
+    virtual auto quit() -> bool {
+        return true;
+    }
 
     virtual ~UserCallbacks() {}
 };
@@ -67,6 +71,7 @@ class Callbacks : public gawl::WindowNoTouchCallbacks {
     auto draw_label(std::string_view text, bool is_quit, double y) -> void;
     auto draw_row(Row& row, double y) -> void;
     auto proc_control_click(Control& ctrl) -> void;
+    auto quit() -> void;
 
   public:
     auto refresh() -> void override;

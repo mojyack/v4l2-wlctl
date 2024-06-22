@@ -77,10 +77,6 @@ struct UserCallbacks : public vcw::UserCallbacks {
             *rows = controls_to_rows(v4l2::query_controls(fd));
         }
     }
-
-    auto quit() -> void override {
-        std::quick_exit(0);
-    }
 };
 
 auto main(const int argc, const char* argv[]) -> int {
@@ -97,7 +93,7 @@ auto main(const int argc, const char* argv[]) -> int {
     auto window_callbacks = std::shared_ptr<vcw::Callbacks>(new vcw::Callbacks(rows, user_callbacks));
 
     auto app = gawl::WaylandApplication();
-    app.open_window({.title = "v4l2-wlctl", .manual_refresh = true}, window_callbacks);
+    app.open_window({.title = "v4l2-wlctl", .manual_refresh = true}, std::move(window_callbacks));
     app.run();
     return 0;
 }

@@ -1,4 +1,5 @@
 #include "window.hpp"
+#include "gawl/application.hpp"
 #include "gawl/fc.hpp"
 #include "gawl/misc.hpp"
 #include "gawl/window.hpp"
@@ -121,6 +122,12 @@ auto Callbacks::proc_control_click(Control& ctrl) -> void {
     }
 }
 
+auto Callbacks::quit() -> void {
+    if(callbacks->quit()) {
+        application->quit();
+    }
+}
+
 auto Callbacks::refresh() -> void {
     for(auto i = 0u; i < rows.size(); i += 1) {
         const auto y = i * row_height;
@@ -129,7 +136,7 @@ auto Callbacks::refresh() -> void {
 }
 
 auto Callbacks::close() -> void {
-    callbacks->quit();
+    quit();
 }
 
 auto Callbacks::on_pointer(const gawl::Point& point) -> void {
@@ -173,7 +180,7 @@ auto Callbacks::on_click(const uint32_t button, const gawl::ButtonState state) -
     case Row::index_of<Label>:
         break;
     case Row::index_of<QuitButton>:
-        callbacks->quit();
+        quit();
         break;
     }
 }
