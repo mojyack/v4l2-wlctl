@@ -3,8 +3,7 @@
 #include "gawl/fc.hpp"
 #include "gawl/misc.hpp"
 #include "gawl/window.hpp"
-#include "macros/assert.hpp"
-#include "util/assert.hpp"
+#include "macros/unwrap.hpp"
 
 namespace vcw {
 namespace {
@@ -185,13 +184,14 @@ auto Callbacks::on_click(const uint32_t button, const gawl::ButtonState state) -
     }
 }
 
+auto Callbacks::init() -> bool {
+    unwrap(fontpath, gawl::find_fontpath_from_name("Noto Sans CJK JP"));
+    font = gawl::TextRender({fontpath}, 32);
+    return true;
+}
+
 Callbacks::Callbacks(std::vector<Row>& rows, std::shared_ptr<UserCallbacks> callbacks)
     : rows(rows),
       callbacks(callbacks) {
-    if(const auto o = gawl::find_fontpath_from_name("Noto Sans CJK JP")) {
-        font = gawl::TextRender({*o}, 32);
-    } else {
-        PANIC("failed to find font");
-    }
 }
 } // namespace vcw

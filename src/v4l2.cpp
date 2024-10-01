@@ -5,7 +5,6 @@
 #include <unistd.h>
 
 #include "macros/unwrap.hpp"
-#include "util/assert.hpp"
 #include "v4l2.hpp"
 
 namespace v4l2 {
@@ -86,7 +85,7 @@ auto query_class_controls(const int fd, const uint32_t control_class, std::vecto
                 continue;
             }
 
-            unwrap_on(current, get_control(fd, queryctrl.id));
+            unwrap(current, get_control(fd, queryctrl.id));
 
             auto control = Control{
                 .id       = queryctrl.id,
@@ -137,7 +136,7 @@ auto get_control(const int fd, const uint32_t id) -> std::optional<int32_t> {
     auto control = v4l2_control();
     control.id   = id;
 
-    assert_o(xioctl(fd, VIDIOC_G_CTRL, &control) == 0);
+    ensure(xioctl(fd, VIDIOC_G_CTRL, &control) == 0);
 
     return control.value;
 }

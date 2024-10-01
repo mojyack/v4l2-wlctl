@@ -53,13 +53,13 @@ auto controls_to_rows(std::vector<v4l2::Control> controls) -> std::vector<vcw::R
     auto ret = std::vector<vcw::Row>();
     for(auto& ctrl : controls) {
         if(ctrl.type == v4l2::ControlType::Menu) {
-            ret.emplace_back(vcw::Tag<vcw::Label>(), vcw::Label{ctrl.name});
+            ret.emplace_back(vcw::Row::create<vcw::Label>(ctrl.name));
         }
         const auto ptr = new Control();
         ptr->ctrl      = std::move(ctrl);
-        ret.emplace_back(vcw::Tag<vcw::ControlPtr>(), ptr);
+        ret.emplace_back(vcw::Row::create<vcw::ControlPtr>(ptr));
     }
-    ret.emplace_back(vcw::Tag<vcw::QuitButton>(), vcw::QuitButton{});
+    ret.emplace_back(vcw::Row::create<vcw::QuitButton>());
 
     return ret;
 }
@@ -80,10 +80,10 @@ struct UserCallbacks : public vcw::UserCallbacks {
 };
 
 auto main(const int argc, const char* argv[]) -> int {
-    assert_v(argc == 2, 1);
+    ensure(argc == 2, 1);
 
     const auto fd = open(argv[1], O_RDWR);
-    assert_v(fd >= 0, 1);
+    ensure(fd >= 0, 1);
     auto rows = controls_to_rows(v4l2::query_controls(fd));
 
     auto user_callbacks  = std::shared_ptr<UserCallbacks>(new UserCallbacks());
@@ -91,6 +91,7 @@ auto main(const int argc, const char* argv[]) -> int {
     user_callbacks->rows = &rows;
 
     auto window_callbacks = std::shared_ptr<vcw::Callbacks>(new vcw::Callbacks(rows, user_callbacks));
+    ensure(window_callbacks->init());
 
     auto app = gawl::WaylandApplication();
     app.open_window({.title = "v4l2-wlctl", .manual_refresh = true}, std::move(window_callbacks));

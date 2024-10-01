@@ -79,6 +79,8 @@ class Callbacks : public gawl::WindowNoTouchCallbacks {
     auto on_click(uint32_t button, gawl::ButtonState state) -> void override;
     auto on_pointer(const gawl::Point& point) -> void override;
 
+    auto init() -> bool;
+
     Callbacks(std::vector<Row>& rows, std::shared_ptr<UserCallbacks> callbacks);
 };
 } // namespace vcw
