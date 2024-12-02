@@ -2,7 +2,6 @@
 
 #include "gawl/wayland/application.hpp"
 #include "macros/assert.hpp"
-#include "util/assert.hpp"
 #include "v4l2.hpp"
 #include "window.hpp"
 
@@ -80,21 +79,20 @@ struct UserCallbacks : public vcw::UserCallbacks {
 };
 
 auto main(const int argc, const char* argv[]) -> int {
-    ensure(argc == 2, 1);
+    ensure(argc == 2);
 
     const auto fd = open(argv[1], O_RDWR);
-    ensure(fd >= 0, 1);
+    ensure(fd >= 0);
     auto rows = controls_to_rows(v4l2::query_controls(fd));
 
     auto user_callbacks  = std::shared_ptr<UserCallbacks>(new UserCallbacks());
     user_callbacks->fd   = fd;
     user_callbacks->rows = &rows;
 
-    auto window_callbacks = std::shared_ptr<vcw::Callbacks>(new vcw::Callbacks(rows, user_callbacks));
-    ensure(window_callbacks->init());
-
-    auto app = gawl::WaylandApplication();
-    app.open_window({.title = "v4l2-wlctl", .manual_refresh = true}, std::move(window_callbacks));
-    app.run();
+    auto runner = coop::Runner();
+    auto app    = gawl::WaylandApplication();
+    auto cbs    = std::shared_ptr<vcw::Callbacks>(new vcw::Callbacks(rows, user_callbacks));
+    runner.push_task(app.run(), app.open_window({.title = "v4l2-wlctl", .manual_refresh = true}, std::move(cbs)));
+    runner.run();
     return 0;
 }

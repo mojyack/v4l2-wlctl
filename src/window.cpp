@@ -138,10 +138,17 @@ auto Callbacks::close() -> void {
     quit();
 }
 
-auto Callbacks::on_pointer(const gawl::Point& point) -> void {
+auto Callbacks::on_created(gawl::Window* /*window*/) -> coop::Async<bool> {
+    constexpr auto error_value = false;
+    co_unwrap_v(fontpath, gawl::find_fontpath_from_name("Noto Sans CJK JP"));
+    font = gawl::TextRender({fontpath}, 32);
+    co_return true;
+}
+
+auto Callbacks::on_pointer(gawl::Point point) -> coop::Async<bool> {
     pointer = point;
     if(focus_control == nullptr) {
-        return;
+        co_return true;
     }
     auto& ctrl = *focus_control;
     switch(focus_control->get_type()) {
@@ -156,11 +163,12 @@ auto Callbacks::on_pointer(const gawl::Point& point) -> void {
     default:
         break;
     }
+    co_return true;
 }
 
-auto Callbacks::on_click(const uint32_t button, const gawl::ButtonState state) -> void {
+auto Callbacks::on_click(const uint32_t button, const gawl::ButtonState state) -> coop::Async<bool> {
     if(button != BTN_LEFT) {
-        return;
+        co_return true;
     }
     if(pointer.y >= rows.size() * row_height || state != gawl::ButtonState::Press) {
         if(focus_control != nullptr) {
@@ -169,7 +177,7 @@ auto Callbacks::on_click(const uint32_t button, const gawl::ButtonState state) -
         } else {
             focus_control = nullptr;
         }
-        return;
+        co_return true;
     }
     auto& row = rows[(pointer.y / row_height)];
     switch(row.get_index()) {
@@ -182,12 +190,7 @@ auto Callbacks::on_click(const uint32_t button, const gawl::ButtonState state) -
         quit();
         break;
     }
-}
-
-auto Callbacks::init() -> bool {
-    unwrap(fontpath, gawl::find_fontpath_from_name("Noto Sans CJK JP"));
-    font = gawl::TextRender({fontpath}, 32);
-    return true;
+    co_return true;
 }
 
 Callbacks::Callbacks(std::vector<Row>& rows, std::shared_ptr<UserCallbacks> callbacks)

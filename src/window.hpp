@@ -33,7 +33,7 @@ struct Control {
     virtual auto get_menu_label(size_t index) -> std::string_view = 0;
     virtual auto get_menu_value(size_t index) -> int              = 0;
 
-    virtual ~Control(){};
+    virtual ~Control() {};
 };
 
 using ControlPtr = std::unique_ptr<Control>;
@@ -76,10 +76,9 @@ class Callbacks : public gawl::WindowNoTouchCallbacks {
   public:
     auto refresh() -> void override;
     auto close() -> void override;
-    auto on_click(uint32_t button, gawl::ButtonState state) -> void override;
-    auto on_pointer(const gawl::Point& point) -> void override;
-
-    auto init() -> bool;
+    auto on_created(gawl::Window* window) -> coop::Async<bool> override;
+    auto on_pointer(gawl::Point point) -> coop::Async<bool> override;
+    auto on_click(uint32_t button, gawl::ButtonState state) -> coop::Async<bool> override;
 
     Callbacks(std::vector<Row>& rows, std::shared_ptr<UserCallbacks> callbacks);
 };
